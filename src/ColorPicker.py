@@ -10,11 +10,43 @@ from math import ceil
 class RGBA:
     """class for storing rgba colors and converting them to different representations"""
 
-    def __init__(self, rgba=(0, 0, 0, 255)):
+    def __init__(self, c_val=(0, 0, 0, 255)):
+        """color values should be in range 0-255 and should be passed as lists or a string with hex values.
+        if only three values are passed, a fourth alpha value will be appended with the value 255"""
+        if type(c_val) is tuple:
+            c_val = list(c_val)
+
+        if type(c_val) is list or type(c_val) is tuple:
+            if len(c_val) == 3 or len(c_val) == 4:
+                if len(c_val) == 3:
+                    c_val.append(255)
+                self.__init_rgba(c_val)
+            else:
+                raise ValueError("Invalid number of channels passed to constructor")
+        elif type(c_val) is str:
+            if c_val[0] == '#':
+                c_val = c_val[1:]
+
+            if len(c_val) == 6:
+                self.__init_hex(c_val + 'ff')
+            elif len(c_val) == 8:
+                self.__init_hex(c_val)
+            else:
+                raise ValueError("Invalid number of channels passed to constructor")
+        else:
+            raise TypeError("Invalid type passed to constructor ", type(c_val))
+
+    def __init_rgba(self, rgba: list):
         self.red = rgba[0]
         self.green = rgba[1]
         self.blue = rgba[2]
         self.alpha = rgba[3]
+
+    def __init_hex(self, hex_val: str):
+        self.red = int(hex_val[0:2], 16)
+        self.green = int(hex_val[2:4], 16)
+        self.blue = int(hex_val[4:6], 16)
+        self.alpha = int(hex_val[6:8], 16)
 
     def rgba(self):
         return self.red, self.green, self.blue, self.alpha
@@ -44,7 +76,12 @@ class RGBA:
 
         return imgTk
 
+    def __str__(self):
+        return f"{self.red} {self.green} {self.blue} {self.alpha}"
+
+    # generates the background the color is added on top of
     def __generatePngBackground(self, dimensions, block_size, colors=None):
+
         if colors is None:
             colors = (type(self)((154, 154, 154, 255)), type(self)((100, 100, 100, 255)))
 
@@ -100,8 +137,10 @@ class ColorPicker(ttk.Frame):
 
     def getColPrevSize(self):
         # return the size of the image in the frame
-        return self.color_preview.winfo_width() - (int(str(self.color_preview['borderwidth'])) + int(str(self.grid_info()['ipadx']))) * 2, \
-               self.color_preview.winfo_height() - (int(str(self.color_preview['borderwidth'])) + int(str(self.grid_info()['ipady']))) * 2
+        return self.color_preview.winfo_width() - (
+                    int(str(self.color_preview['borderwidth'])) + int(str(self.grid_info()['ipadx']))) * 2, \
+               self.color_preview.winfo_height() - (
+                           int(str(self.color_preview['borderwidth'])) + int(str(self.grid_info()['ipady']))) * 2
 
     def changeSize(self, width, height):
         self.width = width
