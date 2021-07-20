@@ -121,7 +121,7 @@ class ColorPicker(ttk.Frame):
 
         self.color_label.grid(column=0, row=0, sticky="NW")
 
-        self.color_preview = Label(self, bg="#000000", width=width, height=height)
+        self.color_preview = Label(self, relief="sunken", borderwidth=3, bg="#000000", width=width, height=height)
 
         self.color_preview.grid(column=0, row=1, sticky="SW", ipadx=0, ipady=0)
 
