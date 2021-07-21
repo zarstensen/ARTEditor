@@ -1,7 +1,7 @@
 import tkinter
 from tkinter import *
 from tkinter import ttk
-from ColorPicker import RGBA
+from src.ColorPicker import RGBA
 import time
 
 
@@ -55,9 +55,6 @@ class PaletteElem(ttk.Frame):
         self.bind('<1>', self.__pressCallback)
         self.palette_vis.bind('<1>', self.__pressCallback)
 
-        self.bind('<B1-ButtonRelease>', self.__releaseCallback)
-        self.palette_vis.bind('<B1-ButtonRelease>', self.__releaseCallback)
-
     def onClick(self, func):
 
         """function should accept a PaletteElem, PaletteData and a ButtonPress event as arguments"""
@@ -68,13 +65,8 @@ class PaletteElem(ttk.Frame):
             self.clickCallback = None
 
     def __pressCallback(self, e):
-        self['style'] = 'PalettePressed.TFrame'
-
         if self.clickCallback is not None:
             self.clickCallback(e)
-
-    def __releaseCallback(self, e):
-        self['style'] = 'PaletteReleased.TFrame'
 
     def updateVis(self):
         character = self.data.character
@@ -140,17 +132,16 @@ class Palette(ttk.Frame):
         self.palette_frame.grid(column=0, row=0, sticky='NW')
 
         self.palette_elems = [[
-                        PaletteElem(self.palette_frame, width=15, height=15) for _ in range(self.palette_grid[0])
+                        PaletteElem(self.palette_frame, width=9, height=9) for _ in range(self.palette_grid[0])
                     ] for _ in range(self.palette_grid[1])]
 
         self.palette_data = []
+        self.selected_palettes = []
 
         for y, row in enumerate(self.palette_elems):
             for x, p_elem in enumerate(row):
                 p_elem.grid(column=x, row=y, sticky='NSEW')
                 p_elem.onClick(self.__paletteClickCallback)
-        
-        self.active_palette = self.palette_elems[0][0]
 
         # setup options
         self.option_frame = ttk.Frame(self, style='Options.TFrame')
@@ -219,7 +210,7 @@ class Palette(ttk.Frame):
         """
 
         if func is not None:
-            self.load_button['command'] = lambda: func(self.active_palette.data)
+            self.load_button['command'] = lambda: func(self.selected_palettes[self.current_preset - 1].data)
         else:
             self.load_button['command'] = None
 
@@ -231,7 +222,7 @@ class Palette(ttk.Frame):
 
         if func is not None:
             def l_callback():
-                pos = self.posFromPalette(self.active_palette)
+                pos = self.posFromPalette(self.selected_palettes[self.current_preset - 1])
                 self.palette_data[self.current_preset - 1][pos[0]][pos[1]] = func()
                 self.__updatePalettes()
 
@@ -247,7 +238,7 @@ class Palette(ttk.Frame):
 
         if func is not None:
             def l_callback():
-                pos = self.posFromPalette(self.active_palette)
+                pos = self.posFromPalette(self.selected_palettes[self.current_preset - 1])
                 self.palette_data[self.current_preset - 1][pos[0]][pos[1]].background_color = func()
                 self.__updatePalettes()
 
@@ -263,7 +254,7 @@ class Palette(ttk.Frame):
 
         if func is not None:
             def l_callback():
-                pos = self.posFromPalette(self.active_palette)
+                pos = self.posFromPalette(self.selected_palettes[self.current_preset - 1])
                 self.palette_data[self.current_preset - 1][pos[0]][pos[1]].foreground_color = func()
                 self.__updatePalettes()
 
@@ -279,7 +270,7 @@ class Palette(ttk.Frame):
 
         if func is not None:
             def l_callback():
-                pos = self.posFromPalette(self.active_palette)
+                pos = self.posFromPalette(self.selected_palettes[self.current_preset - 1])
                 self.palette_data[self.current_preset - 1][pos[0]][pos[1]].character = func()
                 self.__updatePalettes()
 
@@ -300,6 +291,8 @@ class Palette(ttk.Frame):
                         PaletteData() for x in range(self.palette_grid[0])
                     ] for y in range(self.palette_grid[1])])
 
+        self.selected_palettes.insert(self.current_preset, self.palette_elems[0][0])
+
         self.preset_count += 1
 
         self.__updatePalettes()
@@ -307,6 +300,10 @@ class Palette(ttk.Frame):
     def __shrinkPreset(self):
         if self.preset_count != 1:
             del self.palette_data[self.current_preset - 1]
+            del self.selected_palettes[self.current_preset - 1]
+
+            if self.current_preset == self.preset_count:
+                self.current_preset -= 1
 
             self.preset_count -= 1
 
@@ -327,8 +324,13 @@ class Palette(ttk.Frame):
                 col_elem.data = col_data
                 col_elem.updateVis()
 
+                if self.selected_palettes[self.current_preset - 1] is col_elem:
+                    col_elem['style'] = 'PalettePressed.TFrame'
+                else:
+                    col_elem['style'] = 'PaletteReleased.TFrame'
+
     def __paletteClickCallback(self, palette, data, event):
-        self.active_palette = palette
+        self.selected_palettes[self.current_preset - 1] = palette
 
         self.__updatePalettes()
 
