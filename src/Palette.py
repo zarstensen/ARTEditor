@@ -59,6 +59,7 @@ class PaletteElem(ttk.Frame):
         self.palette_vis.bind('<B1-ButtonRelease>', self.__releaseCallback)
 
     def onClick(self, func):
+
         """function should accept a PaletteElem, PaletteData and a ButtonPress event as arguments"""
 
         if func is not None:
@@ -348,21 +349,10 @@ if __name__ == "__main__":
     root = Tk()
     root.minsize(300, 300)
 
-    root.columnconfigure([0], weight=1)
-    root.rowconfigure([0], weight=1)
-
-    frame = ttk.Frame(root)
-    frame.grid(column=0, row=0, sticky="NSEW")
-
-    frame2 = ttk.Frame(frame, padding=5)
-    frame2.grid(column=0, row=0, sticky="NSEW")
+    root.columnconfigure(0, weight=1)
+    root.rowconfigure(0, weight=1)
 
     p = Palette(root)
     p.grid(column=0, row=0, sticky='NSEW')
-
-    s = ttk.Style()
-
-    F = ttk.Frame(root, style='TFrame')
-    F.grid(column=0, row=1, columnspan=3, sticky="NSEW")
 
     root.mainloop()
