@@ -1,8 +1,5 @@
-import tkinter
 from tkinter import *
 from tkinter import ttk
-from src.ColorPicker import RGBA
-import time
 
 
 class PaletteData:
@@ -15,17 +12,18 @@ class PaletteData:
         self.fg = self.foreground_color
         self.bg = self.background_color
 
+
 class PaletteElem(ttk.Frame):
     """
     stores a character and its back and foreground color.
     a callback with the current values stored is called when it is clicked on.
     """
 
-    def __init__(self, root, character=None, foreground=None, background=None, width=None,
+    def __init__(self, root, character=None, foreground=None, background=None, font_width=None,
                  height=None, *args, **kwargs):
         self.root = root
 
-        self.width = width
+        self.width = font_width
         self.height = height
 
         super().__init__(root, *args, **kwargs)
@@ -41,8 +39,7 @@ class PaletteElem(ttk.Frame):
         self.s.configure("PalettePressed.TFrame", relief="sunken",
                          borderwidth=3)
 
-        # apply width and height
-        self.configure(style='PaletteReleased.TFrame')
+        self['style'] = 'PaletteReleased.TFrame'
 
         # setup palette visualization font and size
         self.palette_vis = Label(self, font=("TkFixedFont", self.width), width=1)
@@ -132,7 +129,7 @@ class Palette(ttk.Frame):
         self.palette_frame.grid(column=0, row=0, sticky='NW')
 
         self.palette_elems = [[
-                        PaletteElem(self.palette_frame, width=9, height=9) for _ in range(self.palette_grid[0])
+                        PaletteElem(self.palette_frame, font_width=9, height=9) for _ in range(self.palette_grid[0])
                     ] for _ in range(self.palette_grid[1])]
 
         self.palette_data = []

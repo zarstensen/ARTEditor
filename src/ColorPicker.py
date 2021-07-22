@@ -125,6 +125,8 @@ class ColorPicker(ttk.Frame):
 
         self.color_preview.grid(column=0, row=1, sticky="SW", ipadx=0, ipady=0)
 
+        self.color_change_callback = None
+
         self.color_preview.bind('<Configure>', self.__prevConfCallback)
         self.color_preview.bind('<1>', self.chooseColor)
 
@@ -132,6 +134,10 @@ class ColorPicker(ttk.Frame):
         result = askcolor(self.color.rgbaHex(), alpha=True)
         if None not in result:
             self.color = RGBA(result[0])
+
+            if self.color_change_callback is not None:
+                self.color_change_callback(self.color)
+
             # update preview color
             self.root.after_idle(self.__setColorAsBackground)
 
@@ -150,7 +156,19 @@ class ColorPicker(ttk.Frame):
 
     def chagneColor(self, color: RGBA):
         self.color = color
+
+        if self.color_change_callback is not None:
+            self.color_change_callback(self.color)
+
         self.__setColorAsBackground()
+
+    def onColorChange(self, callback):
+        """
+        calls [callback] when the color value is changed.
+        [callback] should accept an RGBA argument
+        """
+
+        self.color_change_callback = callback
 
     def __setColorAsBackground(self):
 
