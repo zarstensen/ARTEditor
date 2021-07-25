@@ -70,6 +70,5 @@ class Toolbar(ttk.Frame):
         if palette_data.character is not None:
             self.character_picker.setChar(palette_data.character)
 
-
     def __onForegroundChange(self, color):
         self.character_picker.changeForeground(color)
