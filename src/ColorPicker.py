@@ -79,6 +79,9 @@ class RGBA:
     def __str__(self):
         return f"{self.red} {self.green} {self.blue} {self.alpha}"
 
+    def __eq__(self, other):
+        return self.red == other.red and self.green == other.green and self.blue == other.blue and self.alpha == other.alpha
+
     # generates the background the color is added on top of
     def __generatePngBackground(self, dimensions, block_size, colors=None):
 

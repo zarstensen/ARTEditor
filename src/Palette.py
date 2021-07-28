@@ -12,6 +12,11 @@ class PaletteData:
         self.fg = self.foreground_color
         self.bg = self.background_color
 
+    def __eq__(self, other):
+        return other.character == self.character and \
+               other.foreground_color == self.foreground_color and \
+               other.background_color == self.background_color
+
 
 class PaletteElem(ttk.Frame):
     """
@@ -92,6 +97,8 @@ class PaletteElem(ttk.Frame):
         self.update()
 
 
+
+
 class Palette(ttk.Frame):
     """
     A widget interface for interacting with multiple PaletteElem's.
@@ -129,8 +136,8 @@ class Palette(ttk.Frame):
         self.palette_frame.grid(column=0, row=0, sticky='NW')
 
         self.palette_elems = [[
-                        PaletteElem(self.palette_frame, font_width=9, height=9) for _ in range(self.palette_grid[0])
-                    ] for _ in range(self.palette_grid[1])]
+            PaletteElem(self.palette_frame, font_width=9, height=9) for _ in range(self.palette_grid[0])
+        ] for _ in range(self.palette_grid[1])]
 
         self.palette_data = []
         self.selected_palettes = []
@@ -153,11 +160,10 @@ class Palette(ttk.Frame):
                          background=self.s.lookup('Options.TFrame', 'background'))
 
         self.current_preset_text.set(f"{self.current_preset}/{self.preset_count}")
-        self.current_preset_label = ttk.Label(self.option_frame, textvariable=self.current_preset_text, style='PLabel.TLabel')
+        self.current_preset_label = ttk.Label(self.option_frame, textvariable=self.current_preset_text,
+                                              style='PLabel.TLabel')
 
         self.__extendPreset()
-
-
 
         # buttons
         self.s.configure('PButton.TButton', width=0, height=0)
@@ -173,9 +179,12 @@ class Palette(ttk.Frame):
         self.left_button = ttk.Button(self.option_frame, text='<', style='PButton.TButton', command=self.__lbClick)
         self.right_button = ttk.Button(self.option_frame, text='>', style='PButton.TButton', command=self.__rbClick)
 
-        self.extend_button = ttk.Button(self.option_frame, text='+', style='PButton.TButton', command=self.__extendPreset)
-        self.shrink_button = ttk.Button(self.option_frame, text='-', style='PButton.TButton', command=self.__shrinkPreset)
-        self.clear_button = ttk.Button(self.option_frame, text='cl', style='PButton.TButton', command=self.__clearPreset)
+        self.extend_button = ttk.Button(self.option_frame, text='+', style='PButton.TButton',
+                                        command=self.__extendPreset)
+        self.shrink_button = ttk.Button(self.option_frame, text='-', style='PButton.TButton',
+                                        command=self.__shrinkPreset)
+        self.clear_button = ttk.Button(self.option_frame, text='cl', style='PButton.TButton',
+                                       command=self.__clearPreset)
 
         # layout
 
@@ -285,8 +294,8 @@ class Palette(ttk.Frame):
 
     def __extendPreset(self):
         self.palette_data.insert(self.current_preset, [[
-                        PaletteData() for x in range(self.palette_grid[0])
-                    ] for y in range(self.palette_grid[1])])
+            PaletteData() for x in range(self.palette_grid[0])
+        ] for y in range(self.palette_grid[1])])
 
         self.selected_palettes.insert(self.current_preset, self.palette_elems[0][0])
 
