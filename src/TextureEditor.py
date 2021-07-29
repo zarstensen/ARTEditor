@@ -107,6 +107,30 @@ class TextureEditor(ttk.Frame):
             self.__drawData()
             self.__drawImage()
 
+    def resize(self, width, height):
+        """
+        Resizes the drawing area to [width] and [height].
+        If previous data does not fit inside the new are, it is deleted.
+        New areas will be filed with empty data.
+        """
+
+        if len(self.height) > height:
+            self.texture_data.extend([] for _ in range(len(height - self.texture_data)))
+        elif len(self.height) < height:
+            del self.texture_data[height:-1]
+
+        for row in self.texture_data:
+            if len(row) > width:
+                row.extend([PaletteData() for _ in range(width - len(row))])
+            elif len(row) < width:
+                del row[width:-1]
+
+        self.width = width
+        self.height = height
+
+        self.__drawData()
+        self.__drawImage()
+
     def drawText(self, text):
         """draws [text] onto the texture"""
 
