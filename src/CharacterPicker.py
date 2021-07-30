@@ -2,6 +2,7 @@ from tkinter import *
 from tkinter import ttk
 from src.Palette import PaletteElem
 
+
 class CharacterPicker(ttk.Frame):
     """a widget for storing and letting the user modify a character"""
 
@@ -12,6 +13,8 @@ class CharacterPicker(ttk.Frame):
 
         self.font_width = font_width
         self.height = height
+
+        self.change_callback = None
 
         # setup name
         self.name = StringVar(root, name)
@@ -44,6 +47,11 @@ class CharacterPicker(ttk.Frame):
         self.char_vis.data.character = char
         self.char_vis.updateVis()
 
+    def onCharacterChanged(self, func):
+        """calls [func] when the stored character is changed. Should accept a character as an argument"""
+
+        self.change_callback = func
+
     def __acceptInput(self, event):
         """
         Accepts input as either a character, a positive integer, or a hex-value.
@@ -54,6 +62,10 @@ class CharacterPicker(ttk.Frame):
             # detect character input
             if len(self.char_code.get()) == 1:
                 self.char_vis.data.character = self.char_code.get()
+
+                if self.change_callback is not None:
+                    self.change_callback(self.getChar())
+
                 self.char_vis.updateVis()
                 return
 
@@ -61,6 +73,10 @@ class CharacterPicker(ttk.Frame):
             try:
                 code = int(self.char_code.get())
                 self.char_vis.data.character = chr(code)
+
+                if self.change_callback is not None:
+                    self.change_callback(self.getChar())
+
                 self.char_vis.updateVis()
                 return
             except (ValueError, OverflowError):
@@ -71,6 +87,10 @@ class CharacterPicker(ttk.Frame):
                 try:
                     code = int(self.char_code.get()[1:], 16)
                     self.char_vis.data.character = chr(code)
+
+                    if self.change_callback is not None:
+                        self.change_callback(self.getChar())
+
                     self.char_vis.updateVis()
                     return
                 except (ValueError, OverflowError):
