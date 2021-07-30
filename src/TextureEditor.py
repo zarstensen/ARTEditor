@@ -33,6 +33,8 @@ class TextureEditor(ttk.Frame):
 
         self.zoom = zoom
 
+        self.copy_callback = None
+
         # defines the maximum length of the undo and redo list
         self.undo_length = undo_length
 
@@ -51,9 +53,12 @@ class TextureEditor(ttk.Frame):
         self.redo_data = []
 
         # setup canvas and image for holding the texture display data
-        self.canvas = Canvas(self, width=500, height=500)
+        self.canvas = Canvas(self)
 
-        self.canvas.grid(column=0, row=0, sticky='NW')
+        self.columnconfigure(0, weight=1)
+        self.rowconfigure(0, weight=1)
+
+        self.canvas.grid(column=0, row=0, sticky='NSEW')
 
         self.font = self.__getFont(self.zoom)
 
@@ -80,21 +85,36 @@ class TextureEditor(ttk.Frame):
         self.canvas.bind('<MouseWheel>', lambda e: self.__zoom(1, e))
         self.canvas.bind('<Control-MouseWheel>', lambda e: self.__zoom(10, e))
 
-        self.bind_all('<B1-Motion>', self.__draw)
-        self.bind_all('<ButtonPress-1>', self.__drawStart)
-        self.bind_all('<ButtonRelease-1>', self.__drawEnd)
+        self.canvas.bind('<B1-Motion>', self.__draw)
+        self.canvas.bind('<ButtonPress-1>', self.__drawStart)
+        self.canvas.bind('<ButtonRelease-1>', self.__drawEnd)
+        self.canvas.bind('<Alt-1>', self.__copy)
 
-        self.bind_all('<B3-Motion>', self.__erase)
-        self.bind_all('<ButtonPress-3>', self.__eraseStart)
-        self.bind_all('<ButtonRelease-3>', self.__eraseEnd)
+        self.canvas.bind('<B3-Motion>', self.__erase)
+        self.canvas.bind('<ButtonPress-3>', self.__eraseStart)
+        self.canvas.bind('<ButtonRelease-3>', self.__eraseEnd)
 
         self.last_move = (0, 0)
         self.moving = False
+        self.copying = False
 
     def undo(self):
         if self.undo_data:
             self.redo_data.append(deepcopy(self.texture_data))
             self.texture_data = self.undo_data.pop(-1)
+            print('undo', len(self.undo_data))
+            # check if the previous data had a different size
+            if self.width != len(self.texture_data[0]) or self.height != len(self.texture_data):
+
+                self.width = len(self.texture_data[0])
+                self.height = len(self.texture_data)
+
+                # image size changed so a new image must be generated
+                self.texture = self.__generateImage()
+                self.draw = ImageDraw.Draw(self.texture)
+                self.img = ImageTk.PhotoImage(self.texture)
+
+                self.current_image_data = None
 
             self.__drawData()
             self.__drawImage()
@@ -103,6 +123,19 @@ class TextureEditor(ttk.Frame):
         if self.redo_data:
             self.undo_data.append(self.texture_data)
             self.texture_data = self.redo_data.pop(-1)
+
+            # check if the previous data had a different size
+            if self.width != len(self.texture_data[0]) or self.height != len(self.texture_data):
+
+                self.width = len(self.texture_data[0])
+                self.height = len(self.texture_data)
+
+                # image size changed so a new image must be generated
+                self.texture = self.__generateImage()
+                self.draw = ImageDraw.Draw(self.texture)
+                self.img = ImageTk.PhotoImage(self.texture)
+
+                self.current_image_data = None
 
             self.__drawData()
             self.__drawImage()
@@ -114,22 +147,33 @@ class TextureEditor(ttk.Frame):
         New areas will be filed with empty data.
         """
 
-        if len(self.height) > height:
-            self.texture_data.extend([] for _ in range(len(height - self.texture_data)))
-        elif len(self.height) < height:
-            del self.texture_data[height:-1]
+        if self.width != width or self.height != height:
 
-        for row in self.texture_data:
-            if len(row) > width:
-                row.extend([PaletteData() for _ in range(width - len(row))])
-            elif len(row) < width:
-                del row[width:-1]
+            self.undo_data.append(deepcopy(self.texture_data))
 
-        self.width = width
-        self.height = height
+            if height > self.height:
+                self.texture_data.extend([] for _ in range(height - len(self.texture_data)))
+            elif height < self.height:
+                del self.texture_data[height-1:-1]
 
-        self.__drawData()
-        self.__drawImage()
+            for row in self.texture_data:
+                if width > len(row):
+                    row.extend([PaletteData() for _ in range(width - len(row))])
+                elif width < len(row):
+                    del row[width-1:-1]
+
+            self.width = width
+            self.height = height
+
+            # image size changed so a new image must be generated
+            self.texture = self.__generateImage()
+            self.draw = ImageDraw.Draw(self.texture)
+            self.img = ImageTk.PhotoImage(self.texture)
+
+            self.current_image_data = None
+
+            self.__drawData()
+            self.__drawImage()
 
     def drawText(self, text):
         """draws [text] onto the texture"""
@@ -153,9 +197,17 @@ class TextureEditor(ttk.Frame):
 
         self.draw.text((pos[0] * char_width, pos[1] * char_height), char, font=self.font, fill=foreground)
 
+    def onCopy(self, func):
+        """
+        calls [func] if there is an alt-click inside the editor area.
+        [func] should accept a palette data object containing the copied data
+        """
+
+        self.copy_callback = func
+
     def __getFont(self, size):
         self.zoom = size
-        return ImageFont.truetype('../Resources/SourceCodePro/SourceCodePro-Regular.ttf', size)
+        return ImageFont.truetype('./Resources/SourceCodePro/SourceCodePro-Regular.ttf', size)
 
     def __charDimensions(self):
         ascent, descent = self.font.getmetrics()
@@ -211,9 +263,9 @@ class TextureEditor(ttk.Frame):
             for x, col in enumerate(row):
                 if self.current_image_data is None or col != self.current_image_data[y][x]:
                     self.drawChar((x, y),
-                                  col.character if col.character is not None else ' ',
-                                  col.foreground_color.rgba() if col.foreground_color is not None else None,
-                                  col.background_color.rgba() if col.background_color is not None else self.__backgroundColor())
+                                  col.character if col.character  else ' ',
+                                  col.foreground_color.rgba() if col.foreground_color  else None,
+                                  col.background_color.rgba() if col.background_color  else self.__backgroundColor())
 
         self.current_image_data = deepcopy(self.texture_data)
 
@@ -261,10 +313,14 @@ class TextureEditor(ttk.Frame):
         self.moving = False
 
     def __drawStart(self, event):
+        if self.copying:
+            return
+
         self.redo_data = []
 
         if not self.undo_data or self.texture_data != self.undo_data[-1]:
             if len(self.undo_data) >= self.undo_length:
+                print('REACHED UNDO HISTORY LIMIT: ', self.undo_length)
                 self.undo_data.pop(0)
 
             self.undo_data.append(deepcopy(self.texture_data))
@@ -276,6 +332,10 @@ class TextureEditor(ttk.Frame):
         self.__draw(event)
 
     def __drawEnd(self, event):
+        if self.copying:
+            self.copying = False
+            return
+
         if self.undo_data[-1] == self.texture_data:
             self.undo_data.pop()
 
@@ -284,19 +344,22 @@ class TextureEditor(ttk.Frame):
             del self.no_box_data
 
     def __draw(self, event):
+        if self.copying:
+            return
+
         if self.mode == Modes.PEN:
             indices = self.__getImageIndex(event.x, event.y)
 
-            if indices is not None:
+            if indices:
                 pos_x, pos_y = indices
 
-                if self.draw_data.character is not None:
+                if self.draw_data.character:
                     self.texture_data[pos_y][pos_x].character = self.draw_data.character
 
-                if self.draw_data.foreground_color is not None:
+                if self.draw_data.foreground_color:
                     self.texture_data[pos_y][pos_x].foreground_color = self.draw_data.foreground_color
 
-                if self.draw_data.background_color is not None:
+                if self.draw_data.background_color:
                     self.texture_data[pos_y][pos_x].background_color = self.draw_data.background_color
 
                 self.__drawData()
@@ -304,8 +367,8 @@ class TextureEditor(ttk.Frame):
 
         elif self.mode == Modes.BOX:
 
-            crop_width = lambda val: self.__limitValue(val, 0, self.width)
-            crop_height = lambda val: self.__limitValue(val, 0, self.height)
+            crop_width = lambda val: self.__limitValue(val, 0, self.width - 1)
+            crop_height = lambda val: self.__limitValue(val, 0, self.height - 1)
 
             pos_x, pos_y = self.__tileCoord(event.x, event.y)
 
@@ -326,6 +389,9 @@ class TextureEditor(ttk.Frame):
             self.__drawImage()
 
     def __eraseStart(self, event):
+        if self.copying:
+            return
+
         self.redo_data = []
 
         if self.texture_data != self.undo_data[-1]:
@@ -341,6 +407,10 @@ class TextureEditor(ttk.Frame):
         self.__erase(event)
 
     def __eraseEnd(self, event):
+        if self.copying:
+            self.copying = False
+            return
+
         if self.undo_data[-1] == self.texture_data:
             self.undo_data.pop()
 
@@ -349,11 +419,14 @@ class TextureEditor(ttk.Frame):
             del self.no_box_data
 
     def __erase(self, event):
+        if self.copying:
+            return
+
         if self.mode == Modes.PEN:
 
             indices = self.__getImageIndex(event.x, event.y)
 
-            if indices is not None:
+            if indices :
                 pos_x, pos_y = indices
 
                 self.texture_data[pos_y][pos_x] = PaletteData()
@@ -362,8 +435,8 @@ class TextureEditor(ttk.Frame):
                 self.__drawImage()
         elif self.mode == Modes.BOX:
 
-            crop_width = lambda val: self.__limitValue(val, 0, self.width)
-            crop_height = lambda val: self.__limitValue(val, 0, self.height)
+            crop_width = lambda val: self.__limitValue(val, 0, self.width - 1)
+            crop_height = lambda val: self.__limitValue(val, 0, self.height - 1)
 
             pos_x, pos_y = self.__tileCoord(event.x, event.y)
 
@@ -381,6 +454,18 @@ class TextureEditor(ttk.Frame):
 
             self.__drawData()
             self.__drawImage()
+
+    def __copy(self, event):
+        self.copying = True
+
+        indices = self.__getImageIndex(event.x, event.y)
+        if self.copy_callback and indices:
+            pos_x, pos_y = indices
+
+            self.copy_callback(self.texture_data[pos_y][pos_x])
+
+            return 'break'
+
 
 
 if __name__ == '__main__':

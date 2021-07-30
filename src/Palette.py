@@ -14,8 +14,8 @@ class PaletteData:
 
     def __eq__(self, other):
         return other.character == self.character and \
-               other.foreground_color == self.foreground_color and \
-               other.background_color == self.background_color
+               type(other.foreground_color) is self.foreground_color and other.foreground_color == self.foreground_color and \
+               type(other.background_color) is self.background_color and other.background_color == self.background_color
 
 
 class PaletteElem(ttk.Frame):

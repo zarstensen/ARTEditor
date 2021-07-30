@@ -105,13 +105,12 @@ class RGBA:
 class ColorPicker(ttk.Frame):
     """a widget for storing and letting the user modify an rgba value"""
 
-    def __init__(self, root, name="Color", width=20, height=20, **kwargs):
+    def __init__(self, root, name="Color", **kwargs):
         super().__init__(root, **kwargs)
 
         self.root = root
 
-        self.width = width
-        self.height = height
+        self.s = ttk.Style()
 
         self.color = RGBA()
         self.name = StringVar(root, name)
@@ -122,16 +121,20 @@ class ColorPicker(ttk.Frame):
 
         self.color_label = ttk.Label(self, textvariable=self.name)
 
-        self.color_label.grid(column=0, row=0, sticky="NW")
+        self.color_label.grid(column=0, row=0, sticky="SW")
 
-        self.color_preview = Label(self, relief="sunken", borderwidth=3, bg="#000000", width=width, height=height)
+        self.s.configure('PrevFrame.TFrame', relief='sunken', borderwidth=3)
 
-        self.color_preview.grid(column=0, row=1, sticky="SW", ipadx=0, ipady=0)
+        self.color_preview = ttk.Frame(self, style='PrevFrame.TFrame')
+        self.color_prev_label = Label(self.color_preview)
+
+        self.color_preview.grid(column=0, row=1, ipadx=3, ipady=3, sticky='NSEW')
+        self.color_prev_label.place(x=1, y=1, anchor='nw', bordermode='outside')
 
         self.color_change_callback = None
 
-        self.color_preview.bind('<Configure>', self.__prevConfCallback)
-        self.color_preview.bind('<1>', self.chooseColor)
+        self.color_prev_label.bind('<Configure>', self.__prevConfCallback)
+        self.color_prev_label.bind('<1>', self.chooseColor)
 
     def chooseColor(self, *args):
         result = askcolor(self.color.rgbaHex(), alpha=True)
@@ -146,16 +149,9 @@ class ColorPicker(ttk.Frame):
 
     def getColPrevSize(self):
         # return the size of the image in the frame
-        return self.color_preview.winfo_width() - (
-                    int(str(self.color_preview['borderwidth'])) + int(str(self.grid_info()['ipadx']))) * 2, \
-               self.color_preview.winfo_height() - (
-                           int(str(self.color_preview['borderwidth'])) + int(str(self.grid_info()['ipady']))) * 2
 
-    def changeSize(self, width, height):
-        self.width = width
-        self.height = height
-
-        self.color_preview.configure(width=self.width, height=self.height)
+        return max(0, self.color_preview.winfo_width() - self.s.lookup('PrevFrame.TFrame', 'borderwidth') * 2), \
+               max(0, self.color_preview.winfo_height() - self.s.lookup('PrevFrame.TFrame', 'borderwidth') * 2)
 
     def chagneColor(self, color: RGBA):
         self.color = color
@@ -176,9 +172,10 @@ class ColorPicker(ttk.Frame):
     def __setColorAsBackground(self):
 
         # prevent preview image from being freed from memory
+
         self.b_img = self.color.genImg(self.getColPrevSize())
 
-        self.color_preview.configure(image=self.b_img)
+        self.color_prev_label.configure(image=self.b_img)
 
     def __prevConfCallback(self, event):
         # only call __prevResize if size has changed
