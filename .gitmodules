@@ -1,0 +1,6 @@
+[submodule "ArtToCart"]
+	path = ArtToCart
+	url = https://github.com/karstensensensen/ArtToCart.git
+[submodule "Resources/ArtToCart"]
+	path = Resources/ArtToCart
+	url = https://github.com/karstensensensen/ArtToCart.git
