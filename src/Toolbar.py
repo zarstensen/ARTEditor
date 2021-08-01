@@ -18,8 +18,6 @@ class Toolbar(ttk.Frame):
 
         self.change_callback = None
 
-        self.rowconfigure(2, weight=1)
-
         # setup palettes
         self.palette = Palette(self, (11, 4))
 
@@ -166,6 +164,6 @@ class Toolbar(ttk.Frame):
         self.character_picker.changeForeground(color)
 
         if self.change_callback is not None:
-            self.change_callback(PaletteData(self.character_picker.getChar(), self.foreground_picker, color))
+            self.change_callback(PaletteData(self.character_picker.getChar(), self.foreground_picker.color, color))
 
 
