@@ -62,8 +62,7 @@ class TextureEditor(ttk.Frame):
 
         self.font = self.__getFont(self.zoom)
 
-        self.texture = self.__generateImage()
-        self.draw = ImageDraw.Draw(self.texture)
+        self.__generateImage()
 
         self.__drawData()
 
@@ -105,13 +104,11 @@ class TextureEditor(ttk.Frame):
             print('undo', len(self.undo_data))
             # check if the previous data had a different size
             if self.width != len(self.texture_data[0]) or self.height != len(self.texture_data):
-
                 self.width = len(self.texture_data[0])
                 self.height = len(self.texture_data)
 
                 # image size changed so a new image must be generated
-                self.texture = self.__generateImage()
-                self.draw = ImageDraw.Draw(self.texture)
+                self.__generateImage()
                 self.img = ImageTk.PhotoImage(self.texture)
 
                 self.current_image_data = None
@@ -126,13 +123,11 @@ class TextureEditor(ttk.Frame):
 
             # check if the previous data had a different size
             if self.width != len(self.texture_data[0]) or self.height != len(self.texture_data):
-
                 self.width = len(self.texture_data[0])
                 self.height = len(self.texture_data)
 
                 # image size changed so a new image must be generated
-                self.texture = self.__generateImage()
-                self.draw = ImageDraw.Draw(self.texture)
+                self.__generateImage()
                 self.img = ImageTk.PhotoImage(self.texture)
 
                 self.current_image_data = None
@@ -154,20 +149,19 @@ class TextureEditor(ttk.Frame):
             if height > self.height:
                 self.texture_data.extend([] for _ in range(height - len(self.texture_data)))
             elif height < self.height:
-                del self.texture_data[height-1:-1]
+                del self.texture_data[height - 1:-1]
 
             for row in self.texture_data:
                 if width > len(row):
                     row.extend([PaletteData() for _ in range(width - len(row))])
                 elif width < len(row):
-                    del row[width-1:-1]
+                    del row[width - 1:-1]
 
             self.width = width
             self.height = height
 
             # image size changed so a new image must be generated
-            self.texture = self.__generateImage()
-            self.draw = ImageDraw.Draw(self.texture)
+            self.__generateImage()
             self.img = ImageTk.PhotoImage(self.texture)
 
             self.current_image_data = None
@@ -192,8 +186,8 @@ class TextureEditor(ttk.Frame):
 
         char_width, char_height = self.__charDimensions()
 
-        self.draw.rectangle((pos[0] * char_width, pos[1] * char_height,
-                             (pos[0] + 1) * char_width, (pos[1] + 1) * char_height), fill=background)
+        self.draw.rectangle((pos[0] * char_width + 1, pos[1] * char_height + 1,
+                             (pos[0] + 1) * char_width - 1, (pos[1] + 1) * char_height - 1), fill=background)
 
         self.draw.text((pos[0] * char_width, pos[1] * char_height), char, font=self.font, fill=foreground)
 
@@ -207,7 +201,7 @@ class TextureEditor(ttk.Frame):
 
     def __getFont(self, size):
         self.zoom = size
-        return ImageFont.truetype('./Resources/SourceCodePro/SourceCodePro-Regular.ttf', size)
+        return ImageFont.truetype('./Resources/ubuntu.mono.ttf', size, encoding='utf-8')
 
     def __charDimensions(self):
         ascent, descent = self.font.getmetrics()
@@ -223,10 +217,11 @@ class TextureEditor(ttk.Frame):
     def __generateImage(self):
         char_width, char_height = self.__charDimensions()
 
-        background = self.__backgroundColor()
+        self.texture = Image.fromarray(
+            np.full((self.height * char_height, self.width * char_width, 4), (0xff, 0xff, 0xff, 0xff), dtype=np.uint8))
+        self.draw = ImageDraw.Draw(self.texture)
 
-        return Image.fromarray(
-            np.full((self.height * char_height, self.width * char_width, 4), background, dtype=np.uint8))
+        self.__drawData()
 
     def __tileCoord(self, x, y):
         """
@@ -263,9 +258,9 @@ class TextureEditor(ttk.Frame):
             for x, col in enumerate(row):
                 if self.current_image_data is None or col != self.current_image_data[y][x]:
                     self.drawChar((x, y),
-                                  col.character if col.character  else ' ',
-                                  col.foreground_color.rgba() if col.foreground_color  else None,
-                                  col.background_color.rgba() if col.background_color  else self.__backgroundColor())
+                                  col.character if col.character else ' ',
+                                  col.foreground_color.rgba() if col.foreground_color else None,
+                                  col.background_color.rgba() if col.background_color else self.__backgroundColor())
 
         self.current_image_data = deepcopy(self.texture_data)
 
@@ -287,8 +282,7 @@ class TextureEditor(ttk.Frame):
             self.font = self.__getFont(self.zoom)
 
         # image size changed so a new image must be generated
-        self.texture = self.__generateImage()
-        self.draw = ImageDraw.Draw(self.texture)
+        self.__generateImage()
         self.img = ImageTk.PhotoImage(self.texture)
 
         self.current_image_data = None
@@ -336,7 +330,7 @@ class TextureEditor(ttk.Frame):
             self.copying = False
             return
 
-        if self.undo_data[-1] == self.texture_data:
+        if self.undo_data and self.undo_data[-1] == self.texture_data:
             self.undo_data.pop()
 
         if self.mode == Modes.BOX:
@@ -383,7 +377,14 @@ class TextureEditor(ttk.Frame):
 
             for x in range(diff_x + 1):
                 for y in range(diff_y + 1):
-                    self.texture_data[y + offset_y][x + offset_x] = self.draw_data
+                    if self.draw_data.character:
+                        self.texture_data[y + offset_y][x + offset_x].character = self.draw_data.character
+
+                    if self.draw_data.foreground_color:
+                        self.texture_data[y + offset_y][x + offset_x].foreground_color = self.draw_data.foreground_color
+
+                    if self.draw_data.background_color:
+                        self.texture_data[y + offset_y][x + offset_x].background_color = self.draw_data.background_color
 
             self.__drawData()
             self.__drawImage()
@@ -426,13 +427,14 @@ class TextureEditor(ttk.Frame):
 
             indices = self.__getImageIndex(event.x, event.y)
 
-            if indices :
+            if indices:
                 pos_x, pos_y = indices
 
                 self.texture_data[pos_y][pos_x] = PaletteData()
 
                 self.__drawData()
                 self.__drawImage()
+
         elif self.mode == Modes.BOX:
 
             crop_width = lambda val: self.__limitValue(val, 0, self.width - 1)
@@ -465,7 +467,6 @@ class TextureEditor(ttk.Frame):
             self.copy_callback(self.texture_data[pos_y][pos_x])
 
             return 'break'
-
 
 
 if __name__ == '__main__':
