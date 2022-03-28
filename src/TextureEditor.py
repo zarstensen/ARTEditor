@@ -154,13 +154,13 @@ class TextureEditor(ttk.Frame):
             if height > self.height:
                 self.texture_data.extend([] for _ in range(height - len(self.texture_data)))
             elif height < self.height:
-                del self.texture_data[height-1:-1]
+                del self.texture_data[height:]
 
             for row in self.texture_data:
                 if width > len(row):
                     row.extend([PaletteData() for _ in range(width - len(row))])
                 elif width < len(row):
-                    del row[width-1:-1]
+                    del row[width:]
 
             self.width = width
             self.height = height
@@ -207,7 +207,7 @@ class TextureEditor(ttk.Frame):
 
     def __getFont(self, size):
         self.zoom = size
-        return ImageFont.truetype('./Resources/SourceCodePro/SourceCodePro-Regular.ttf', size)
+        return ImageFont.truetype('./Resources/consola.ttf', size)
 
     def __charDimensions(self):
         ascent, descent = self.font.getmetrics()
