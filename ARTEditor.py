@@ -4,7 +4,11 @@ from src.Toolbar import Toolbar
 from src.TextureEditor import TextureEditor, Modes
 from tkinter import ttk
 from Resources.ArtToCart import ArtToCart
+from Resources.ArtToCart import CartToArt
 from pathlib import Path
+from src.ColorPicker import RGBA
+from src.Palette import PaletteData
+
 
 class ARTEditor(ttk.Frame):
 
@@ -45,7 +49,7 @@ class ARTEditor(ttk.Frame):
         self.file_menu.add_separator()
 
         self.file_menu.add_command(label='Export texture', command=self.__exportTexture)
-        self.file_menu.add_command(label='Import texture')
+        self.file_menu.add_command(label='Import texture', command=self.__importTexture)
 
         self.file_menu.add_separator()
 
@@ -55,6 +59,7 @@ class ARTEditor(ttk.Frame):
         self.file_menu.add_separator()
 
         self.file_menu.add_command(label='convert to .cart', command=self.__convertCart)
+        self.file_menu.add_command(label='convert to .art', command=self.__convertArt)
 
         # layout
         self.toolbar.grid(column=0, row=0, sticky='nsew')
@@ -96,6 +101,7 @@ class ARTEditor(ttk.Frame):
 
         path = Path(target_dir)
 
+        # if suffix is .art write a Asciir Texture File
         if path.suffix == '.art':
             with open(target_dir, 'w', encoding='utf-8') as file:
                 # write size
@@ -137,6 +143,7 @@ class ARTEditor(ttk.Frame):
                         else:
                             file.write('00000000 ')
                     file.write('\n')
+        # if suffix is anything else (including .cart), write a Compact Asciir File.
         else:
             with open(target_dir, 'wb') as file:
                 file.write(self.texture_editor.width.to_bytes(8, 'little'))
@@ -156,14 +163,65 @@ class ARTEditor(ttk.Frame):
                             else:
                                 file.write(b'\00\00\00\00')
 
-    def __convertCart(self):
-        dir = tkinter.filedialog.askopenfilename(defaultextension=".art",
-                                                 filetypes=("Ascii Render texture file", "*.art"))
-
-        if not dir:
+    def __importTexture(self):
+        target_dir = tkinter.filedialog.askopenfilename(defaultextension=".art",
+                                                         filetypes=(("Ascii Render texture file", "*.art"),
+                                                                    ("Compact Ascii Render texture file", "*.cart"),
+                                                                    ("All Files", "*.*")))
+        if not target_dir:
             return
 
-        ArtToCart.main([dir])
+        path = Path(target_dir)
+
+        # if suffix is .art read a Asciir Texture File
+        if path.suffix == '.art':
+            data = ArtToCart.readData(path)
+
+            if not data: return
+
+            size_data, symbols_data, foreground_data, background_data = data
+
+            self.texture_editor.resize(size_data[0], size_data[1])
+
+            for i, row in enumerate(zip(symbols_data, foreground_data, background_data)):
+                for j, data in enumerate(zip(row[0], row[1], row[2])):
+                    self.texture_editor.texture_data[i][j] = PaletteData(data[0], RGBA(data[1]), RGBA(data[2]))
+
+            self.texture_editor.rerender()
+
+        # if suffix is anything else (including .cart), read as a Compact Asciir File.
+        else:
+            data = CartToArt.readData(path)
+
+            if not data: return
+
+            size_data, symbols_data, foreground_data, background_data = data
+
+            self.texture_editor.resize(size_data[0], size_data[1])
+
+            for i, row in enumerate(zip(symbols_data, foreground_data, background_data)):
+                for j, data in enumerate(zip(row[0], row[1], row[2])):
+                    self.texture_editor.texture_data[i][j] = PaletteData(data[0].decode('utf-8'), RGBA(data[1]), RGBA(data[2]))
+
+            self.texture_editor.rerender()
+
+    def __convertCart(self):
+        target_dir = tkinter.filedialog.askopenfilename(defaultextension=".art",
+                                                 filetypes=[("Ascii Render texture file", "*.art")])
+
+        if not target_dir:
+            return
+
+        ArtToCart.convert([target_dir])
+
+    def __convertArt(self):
+        target_dir = tkinter.filedialog.askopenfilename(defaultextension=".cart",
+                                                        filetypes=[("Compact Ascii Render texture file", "*.cart")])
+
+        if not target_dir:
+            return
+
+        CartToArt.convert([target_dir])
 
 
 

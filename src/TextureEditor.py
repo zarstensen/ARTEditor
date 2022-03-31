@@ -111,10 +111,7 @@ class TextureEditor(ttk.Frame):
                 self.__generateImage()
                 self.img = ImageTk.PhotoImage(self.texture)
 
-                self.current_image_data = None
-
-            self.__drawData()
-            self.__drawImage()
+            self.rerender()
 
     def redo(self):
         if self.redo_data:
@@ -130,10 +127,7 @@ class TextureEditor(ttk.Frame):
                 self.__generateImage()
                 self.img = ImageTk.PhotoImage(self.texture)
 
-                self.current_image_data = None
-
-            self.__drawData()
-            self.__drawImage()
+            self.rerender()
 
     def resize(self, width, height):
         """
@@ -149,13 +143,13 @@ class TextureEditor(ttk.Frame):
             if height > self.height:
                 self.texture_data.extend([] for _ in range(height - len(self.texture_data)))
             elif height < self.height:
-                del self.texture_data[height - 1:-1]
+                del self.texture_data[height:]
 
             for row in self.texture_data:
                 if width > len(row):
                     row.extend([PaletteData() for _ in range(width - len(row))])
                 elif width < len(row):
-                    del row[width - 1:-1]
+                    del row[width:]
 
             self.width = width
             self.height = height
@@ -164,10 +158,9 @@ class TextureEditor(ttk.Frame):
             self.__generateImage()
             self.img = ImageTk.PhotoImage(self.texture)
 
-            self.current_image_data = None
 
-            self.__drawData()
-            self.__drawImage()
+
+            self.rerender()
 
     def drawText(self, text):
         """draws [text] onto the texture"""
@@ -199,9 +192,13 @@ class TextureEditor(ttk.Frame):
 
         self.copy_callback = func
 
+    def rerender(self):
+        self.__drawData()
+        self.__drawImage()
+
     def __getFont(self, size):
         self.zoom = size
-        return ImageFont.truetype('./Resources/ubuntu.mono.ttf', size, encoding='utf-8')
+        return ImageFont.truetype('./Resources/consola.ttf', size, encoding='utf-8')
 
     def __charDimensions(self):
         ascent, descent = self.font.getmetrics()
@@ -220,6 +217,8 @@ class TextureEditor(ttk.Frame):
         self.texture = Image.fromarray(
             np.full((self.height * char_height, self.width * char_width, 4), (0xff, 0xff, 0xff, 0xff), dtype=np.uint8))
         self.draw = ImageDraw.Draw(self.texture)
+
+        self.current_image_data = None
 
         self.__drawData()
 
@@ -285,10 +284,7 @@ class TextureEditor(ttk.Frame):
         self.__generateImage()
         self.img = ImageTk.PhotoImage(self.texture)
 
-        self.current_image_data = None
-
-        self.__drawData()
-        self.__drawImage()
+        self.rerender()
 
     def __moveStart(self, event):
         self.moving = True
@@ -356,8 +352,7 @@ class TextureEditor(ttk.Frame):
                 if self.draw_data.background_color:
                     self.texture_data[pos_y][pos_x].background_color = self.draw_data.background_color
 
-                self.__drawData()
-                self.__drawImage()
+                self.rerender()
 
         elif self.mode == Modes.BOX:
 
@@ -386,8 +381,7 @@ class TextureEditor(ttk.Frame):
                     if self.draw_data.background_color:
                         self.texture_data[y + offset_y][x + offset_x].background_color = self.draw_data.background_color
 
-            self.__drawData()
-            self.__drawImage()
+            self.rerender()
 
     def __eraseStart(self, event):
         if self.copying:
@@ -432,8 +426,7 @@ class TextureEditor(ttk.Frame):
 
                 self.texture_data[pos_y][pos_x] = PaletteData()
 
-                self.__drawData()
-                self.__drawImage()
+                self.rerender()
 
         elif self.mode == Modes.BOX:
 
@@ -454,8 +447,7 @@ class TextureEditor(ttk.Frame):
                 for y in range(diff_y + 1):
                     self.texture_data[y + offset_y][x + offset_x] = PaletteData()
 
-            self.__drawData()
-            self.__drawImage()
+            self.rerender()
 
     def __copy(self, event):
         self.copying = True

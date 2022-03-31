@@ -22,7 +22,7 @@ class RGBA:
                     c_val.append(255)
                 self.__init_rgba(c_val)
             else:
-                raise ValueError("Invalid number of channels passed to constructor")
+                raise ValueError("Invalid number of channels passed to constructor ", len(c_val))
         elif type(c_val) is str:
             if c_val[0] == '#':
                 c_val = c_val[1:]
